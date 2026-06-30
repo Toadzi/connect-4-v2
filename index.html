@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <title>4-Gewinnt mit Gestensteuerung</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no">
+
+    <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+    <style>
+        .gesture-indicator {
+            display: none;
+        }
+    </style>
+    <!-- Normalizer Reset CSS -->
+    <link rel="stylesheet" href="lib/normalize/normalize.css" />
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="lib/bootstrap/css/bootstrap.min.css" />
+    <!-- Custom -->
+    <link rel="stylesheet" href="css/connectfour.css" />
+</head>
+
+<body>
+    <div class="modal fade" id="modalHistory" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalHistoryLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="historyModalLabel">Aktuelle Spielzüge</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <table id="historyTable" class="table table-striped">
+
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schliessen</button>
+                    <!--<button type="button" class="btn bg-gradient-primary">Games Overview</button>-->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalBox" data-bs-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="modalBoxLabel" aria-hidden="true" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalBoxLabel"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                </div>
+                <div class="modal-body"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header class="game-header"></header>
+        <div class="row">
+            <div class="col-xs-12 col-sm-12 col-md-9">
+                <div id="boardPanel" class="board-panel">
+                    <div class="board-toolbar">
+                        <button type="button" id="instructionsOpenBtn" class="btn btn-outline-info btn-sm board-icon-btn" aria-label="Anleitung öffnen">
+                            <i class="fa fa-circle-info" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" id="toggleFullscreenBoard" class="btn btn-outline-light btn-sm board-toolbar-btn">Vollbild</button>
+                    </div>
+                    <canvas id="boardGame" class="canvasContainer" width="800" height="600"></canvas>
+                </div>
+            </div>
+            <div class="col-xs-12 col-sm-12 col-md-3">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-12 col-md-12">
+                        <img src="img/logo-connect-4-ai.png" class="mx-auto d-block logo" alt="CONNECT 4 AI">
+                        <div class="auxiliary-controls">
+                            <button type="button" id="toggleWebcamPanel" class="btn btn-outline-light btn-sm auxiliary-btn">Webcam ausblenden</button>
+                            <button type="button" id="toggleConsolePanel" class="btn btn-outline-light btn-sm auxiliary-btn">Konsole ausblenden</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row" id="webcamPanelRow">
+                    <div class="col-xs-12 col-sm-12 col-md-12">
+                        <div id="webcam" style="position: relative;"> </div>
+                    </div>
+                </div>
+                <div class="row" id="consolePanelRow">
+                    <div class="col-xs-12 col-sm-12 col-md-12">
+                        <div id="consoleOutput" style="position: relative;"> </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-xs-12 col-sm-12 col-md-12">
+                <div class="statusMesssages">
+                    <div id="playError" class="alert alert-danger" role="alert" style="display: none;"></div>
+                    <div id="showMessage" class="alert alert-info" role="alert" style="display: none;"></div>
+                    <div id="lockoutIndicator" class="alert alert-danger" role="alert" style="display: none;">
+                        Bitte warten ...
+                    </div>
+                </div>
+                <div id="gestureIndicator" class="gesture-indicator alert alert-info" style="width: 0%; height: 20px; background-color: green; transition: width 2s;"></div>
+            </div>
+        </div>
+
+
+        <div class="offcanvas offcanvas-bottom text-bg-dark game-menu" tabindex="-1" id="offcanvasBottom" aria-labelledby="offcanvasBottomLabel">
+            <div class="offcanvas-header game-menu-header">
+                <div>
+                    <p class="menu-eyebrow">Steuerzentrale</p>
+                    <h5 class="offcanvas-title" id="offcanvasBottomLabel">Spielmenü</h5>
+                    <p class="menu-subtitle">Konfiguration, Match-Aktionen und Eingabeoptionen an einem Ort.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <div class="menu-shell">
+                    <section class="menu-hero" aria-label="Menü Übersicht">
+                        <div class="menu-hero-copy">
+                            <span class="menu-kicker">Live Setup</span>
+                            <h6>Alles Wichtige im Spielfluss, ohne das Board aus dem Fokus zu nehmen.</h6>
+                            <p>Lege Startspieler, KI-Strategie, Brettgröße und Eingabeoptionen kompakt fest und starte direkt weiter.</p>
+                        </div>
+                        <div class="menu-hero-badges" aria-hidden="true">
+                            <span class="menu-chip menu-chip-player">Spieler</span>
+                            <span class="menu-chip menu-chip-ai">KI</span>
+                            <span class="menu-chip menu-chip-gesture">Gesten</span>
+                            <span class="menu-chip menu-chip-history">Replay</span>
+                        </div>
+                    </section>
+
+                    <div class="menu-grid">
+                        <section class="menu-panel menu-panel-span-2" aria-labelledby="menuSetupTitle">
+                            <div class="menu-panel-header">
+                                <div>
+                                    <p class="menu-panel-kicker">Setup</p>
+                                    <h6 class="menu-panel-title" id="menuSetupTitle">Spieler & KI</h6>
+                                </div>
+                                <p class="menu-panel-copy">Die Kernparameter für eine neue Runde.</p>
+                            </div>
+
+                            <div class="menu-control-grid">
+                                <label class="menu-field menu-field-full" for="playerNameInput">
+                                    <span class="menu-label">Spielername</span>
+                                    <input type="text" id="playerNameInput" class="form-control form-control-lg btn-game" maxlength="80" placeholder="Spielername">
+                                </label>
+
+                                <label class="menu-field" for="firstMoveSelect">
+                                    <span class="menu-label">Startspieler</span>
+                                    <select id="firstMoveSelect" class="form-select form-select-lg btn-game">
+                                        <option value="Player">Spieler</option>
+                                        <option value="AI">AI</option>
+                                    </select>
+                                </label>
+
+                                <label class="menu-field" for="algorithmSelect">
+                                    <span class="menu-label">KI-Algorithmus</span>
+                                    <select id="algorithmSelect" class="form-select form-select-lg btn-game">
+                                        <option value="minimax" selected>Minimax</option>
+                                        <option value="negamax">Negamax</option>
+                                        <option value="mcts">Monte Carlo Tree Search</option>
+                                    </select>
+                                </label>
+
+                                <label class="menu-field menu-field-full" for="depthSelect">
+                                    <span class="menu-label">Schwierigkeit</span>
+                                    <select id="depthSelect" class="form-select form-select-lg btn-game">
+                                        <option value="1">Depth 1</option>
+                                        <option value="2">Depth 2</option>
+                                        <option value="3">Depth 3</option>
+                                        <option value="4" selected>Depth 4</option>
+                                        <option value="5">Depth 5</option>
+                                        <option value="6">Depth 6</option>
+                                        <option value="7">Depth 7</option>
+                                        <option value="8">Depth 8</option>
+                                    </select>
+                                </label>
+                            </div>
+                        </section>
+
+                        <section class="menu-panel" aria-labelledby="menuViewTitle">
+                            <div class="menu-panel-header">
+                                <div>
+                                    <p class="menu-panel-kicker">Ansicht</p>
+                                    <h6 class="menu-panel-title" id="menuViewTitle">Feedback & Fokus</h6>
+                                </div>
+                            </div>
+
+                            <div class="menu-switch-card">
+                                <div class="form-check form-switch">
+                                    <div>
+                                        <label class="form-check-label menu-switch-label" for="toggleConsoleOutput">Konsolenausgabe</label>
+                                        <p class="menu-switch-copy">Blendet Debug- und Statusmeldungen im Spiel ein oder aus.</p>
+                                    </div>
+                                    <input class="form-check-input" type="checkbox" id="toggleConsoleOutput" checked="">
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="menu-panel menu-panel-span-2" aria-labelledby="menuActionsTitle">
+                            <div class="menu-panel-header">
+                                <div>
+                                    <p class="menu-panel-kicker">Aktionen</p>
+                                    <h6 class="menu-panel-title" id="menuActionsTitle">Schnellzugriffe</h6>
+                                </div>
+                                <p class="menu-panel-copy">Die wichtigsten Aktionen groß, klar und fingertauglich.</p>
+                            </div>
+
+                            <div class="menu-action-grid">
+                                <button type="button" id="toggleGestureControl" class="btn btn-primary btn-game menu-action-btn">
+                                    <i class="fa-solid fa-hand" aria-hidden="true"></i>
+                                    <span>Gestensteuerung aktivieren</span>
+                                </button>
+                                <button type="button" id="restartGame" class="btn btn-warning btn-game menu-action-btn">
+                                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                                    <span>Spiel neustarten</span>
+                                </button>
+                                <button type="button" id="historyOpenBtn" class="btn btn-info btn-game menu-action-btn">
+                                    <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+                                    <span>Spiel Historie öffnen</span>
+                                </button>
+                                <button type="button" id="rankingOpenBtn" class="btn btn-success btn-game menu-action-btn">
+                                    <i class="fa-solid fa-trophy" aria-hidden="true"></i>
+                                    <span>Highscore & Matches</span>
+                                </button>
+                            </div>
+                        </section>
+
+                        <section class="menu-panel" aria-labelledby="menuBoardTitle">
+                            <div class="menu-panel-header">
+                                <div>
+                                    <p class="menu-panel-kicker">Spielfeld</p>
+                                    <h6 class="menu-panel-title" id="menuBoardTitle">Brettgröße</h6>
+                                </div>
+                            </div>
+
+                            <div class="menu-slider-card">
+                                <label for="customRangeRow" class="form-label slider-label">Zeilen</label>
+                                <input type="range" class="form-range" min="4" max="9" step="1" value="6" id="customRangeRow">
+                                <label for="customRangeCol" class="form-label slider-label">Spalten</label>
+                                <input type="range" class="form-range" min="4" max="10" step="1" value="7" id="customRangeCol">
+                                <p class="menu-range-hint">Mehr Reihen und Spalten machen Matches länger und die KI fordernder.</p>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="toast-container position-fixed top-50 start-50 translate-middle">
+            <div id="liveToast" class="toast text-bg-primary" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        hier soll der Text rein
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="menu-button-container">
+        <button class="btn menu-launch-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasBottom" aria-controls="offcanvasBottom">
+            <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+            <span>Spielmenü</span>
+        </button>
+    </div>
+
+    <script src="lib/jquery/jquery-3.7.1.min.js"></script>
+    <script src="lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script type="module" src="config.js" defer></script>
+    <script type="module" src="board.js" defer></script>
+    <script type="module" src="game.js" defer></script>
+</body>
+
+</html>
