@@ -1,4 +1,4 @@
-![beitragsbild](https://github.com/Toadzi/connect-4/assets/170478014/65157293-9c7c-4d3f-a21c-9dbe75c59b3d)
+![beitragsbild](https://github.com/Toadzi/connect-4-v2/connect4-v2.png)
 
 # Leroy's Connect 4
 
